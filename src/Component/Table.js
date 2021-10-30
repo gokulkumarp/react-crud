@@ -1,13 +1,13 @@
-import {React, useState} from 'react';
-import data from '../tableData.json'
+import {React, useEffect, useState} from 'react';
 import EditTable from './EditTable';
 import RawTable from './RawTable';
 import { nanoid } from 'nanoid'
 import '../App.css'
+import axios from 'axios';
 
 export default function Table(){
 
-    const [contacts, setContact] = useState(data)
+    const [contacts, setContact] = useState([])
 
     const [addFormData, setAddFormData] = useState({
         fullName: '',
@@ -18,6 +18,8 @@ export default function Table(){
 
     const [editButton, setEditButton] = useState(null)
 
+    const [loading, setLoading] = useState(false)
+
     const [editFormData, setEditFormData] = useState({
         fullName: '',
         address: '',
@@ -25,19 +27,25 @@ export default function Table(){
         email: ''
     })
 
-    const handleFormData = (event)=>{
+    useEffect(()=>{
+        const getData = async ()=>{
+            setLoading(true)
+            const response = await axios.get("http://localhost:3000/contacts/")
+            setContact(response.data)
+            setLoading(false)
+        }
+        getData();
+    },[])
+
+    
+
+    const addOnChangeDataCapture = (event)=>{
         event.preventDefault();
 
         setAddFormData({...addFormData, [event.target.name]: event.target.value})
-        // const fieldName = event.target.getAttribute('name'); 
-        // const fieldValue = event.target.value;
-        
-        // const newFormData = {...addFormData}
-        // newFormData[fieldName] = fieldValue
-        // setAddFormData(newFormData)
     }
 
-    const submitFormData = (event)=>{
+    const addButtonFunctionality = async (event)=>{
         event.preventDefault();
         const newaddformdata = {
             id : nanoid(),
@@ -46,6 +54,8 @@ export default function Table(){
             phoneNumber: addFormData.phoneNumber, 
             email: addFormData.email
     }
+    
+    const response = await axios.post("http://localhost:3000/contacts/", newaddformdata)
     const newContacts = [...contacts, newaddformdata]
     setContact(newContacts)
     event.target.reset();  
@@ -64,24 +74,22 @@ export default function Table(){
     setEditFormData(newEditForm)
   }
 
-  const editHandleFormData = (event)=>{
+  const editOnChangeDataCapture = (event)=>{
     event.preventDefault();
 
     setEditFormData({...editFormData, [event.target.name]: event.target.value})
-
-
   }
 
-  const submitEditFormData = (event)=>{
+  const updateButtonFunctionality = async (event)=>{
     event.preventDefault();
     console.log(contacts)
       const newEditFormData = {
-        id  : editButton,
         fullName: editFormData.fullName, 
         address: editFormData.address, 
         phoneNumber: editFormData.phoneNumber, 
         email: editFormData.email
       }
+      const response = await axios.put(`http://localhost:3000/contacts/${editButton}`, newEditFormData)
       const newEditContacts = [...contacts]
       const index = contacts.findIndex((contact)=>contact.id===editButton)
       newEditContacts[index] = newEditFormData
@@ -91,14 +99,16 @@ export default function Table(){
   }
 
 
-  const deleteButton = (event, contactID)=>{
-    event.preventDefault();
+  const deleteButton = async (event, contactID)=>{
       const newDeleteEditContacts = [...contacts]
+      const response = await axios.delete(`http://localhost:3000/contacts/${contactID}`)
       const index = contacts.findIndex((contact)=>contact.id===contactID)
       newDeleteEditContacts.splice(index, 1)
       setContact(newDeleteEditContacts)
 
   }
+
+
   const cancelButton = (event)=>{
     event.preventDefault();
     setEditButton(null) 
@@ -107,7 +117,7 @@ export default function Table(){
     return(
         <>
         <p>Table component</p>
-        <form onSubmit= {submitEditFormData}>
+        <form onSubmit= {updateButtonFunctionality}>
         <table>
             <thead>
                 <tr>
@@ -119,22 +129,24 @@ export default function Table(){
                 </tr>
             </thead>
             <tbody>
-            {contacts.map((tableData)=>
+                {loading?(<h1>Loading...</h1>):(contacts.map((tableData)=>
                 <>
-                {tableData.id === editButton ? <EditTable contact={tableData} editHandleFormData={editHandleFormData} cancelButton={cancelButton}/> : <RawTable contact={tableData} clickEdit= {clickEdit} deleteButton = {deleteButton}/>   } 
+                {tableData.id === editButton ? <EditTable contact={tableData} editOnChangeDataCapture={editOnChangeDataCapture} cancelButton={cancelButton}/> : <RawTable contact={tableData} clickEdit= {clickEdit} deleteButton = {deleteButton}/>   } 
                 
                 
                 </>
-                )}          
+                ))}   
+                
+                   
             </tbody>
         </table> 
         </form>
         <div>
-            <form onSubmit = {submitFormData}>
-             <input type="text" name="fullName" placeholder="Enter a name" onChange={handleFormData} required="required"></input>   
-             <input type="text" name = "address" placeholder="Enter a address" onChange={handleFormData} required="required"></input>   
-             <input type="text" name = "phoneNumber" placeholder="Enter a phoneNumber" onChange={handleFormData} required="required"></input>   
-             <input type="email" name = "email" placeholder="Enter a email" onChange={handleFormData} required="required"></input>   
+            <form onSubmit = {addButtonFunctionality}>
+             <input type="text" name="fullName" placeholder="Enter a name" onChange={addOnChangeDataCapture} required="required"></input>   
+             <input type="text" name = "address" placeholder="Enter a address" onChange={addOnChangeDataCapture} required="required"></input>   
+             <input type="text" name = "phoneNumber" placeholder="Enter a phoneNumber" onChange={addOnChangeDataCapture} required="required"></input>   
+             <input type="email" name = "email" placeholder="Enter a email" onChange={addOnChangeDataCapture} required="required"></input>   
             <button type= "Submit">Add</button> 
             </form>   
         </div>
